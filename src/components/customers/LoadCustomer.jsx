@@ -9,28 +9,28 @@ function LoadCustomer({ setCustomer, setStatus }) {
     const [currentCustomer, setCurrentCustomer] = useState({ name: '', phone: '', address: '', prescriptions: [] });
     const [loadingCustomers, setLoadingCustomers] = useState(false);
 
-    // useEffect(() => {
-    //     // Load all customers on page load
-    //     handleSearchCustomers();
-    // }, []);
-
-    const handleSearchCustomers = async () => {
+    useEffect(() => {
         setLoadingCustomers(true);
-        try {
-            const data = await searchCustomer(currentCustomer.name, currentCustomer.phone);
-            if (!data.success) {
-                setStatus({ status: 'error', description: `Failed to search customer. Error ${data.error}` });
+        const debounceTimeout = setTimeout(() => {
+            const loadFilteredCustomer = async () => {
+                const data = await searchCustomer(currentCustomer.name, currentCustomer.phone);
+                if (!data.success) {
+                    setStatus({ status: 'error', description: `Failed to search customer. Error ${data.error}` });
+                    setLoadingCustomers(false);
+                    return;
+                }
+                setFilteredCustomers(data.data);
                 setLoadingCustomers(false);
-                return;
             }
-            setFilteredCustomers(data.data);
-        } catch (error) {
-            console.error('Error searching customers:', error);
-            setStatus({ status: 'error', description: `Failed to search customers. Error ${error}` });
-        } finally {
+            // load all customers on page load
+            loadFilteredCustomer();
+        }, 300); // 300ms debounce time
+
+        return () => {
+            clearTimeout(debounceTimeout);
             setLoadingCustomers(false);
-        }
-    };
+        };
+    }, [currentCustomer]);
 
 
 
@@ -72,18 +72,6 @@ function LoadCustomer({ setCustomer, setStatus }) {
                 <Card.Header>Select a Customer</Card.Header>
                 <Card.Body>
                     <CustomerForm customer={currentCustomer} setCustomer={setCurrentCustomer} isEditable={true} />
-                    
-                    {/* Search Button */}
-                    <div className="mt-3 mb-3">
-                        <button 
-                            className="btn btn-dark" 
-                            onClick={handleSearchCustomers}
-                            disabled={loadingCustomers}
-                        >
-                            {loadingCustomers ? 'Searching...' : 'Search Customers'}
-                        </button>
-                    </div>
-
                     <div className="customer-list mt-3">
                         {loadingCustomers ? <div>Loading...</div> : <>
                             {filteredCustomers.length > 0 && (
